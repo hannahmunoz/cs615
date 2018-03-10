@@ -1,18 +1,19 @@
 package hw1_mapreduce.hw1_mapreduce;
 import java.io.IOException;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
+import java.util.Vector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.IntWritable.Comparator;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
@@ -22,7 +23,7 @@ public class wordcount {
 	/// 		City Mapper		///
 	//////////////////////////////
 	
-	public static class cityMapper extends Mapper<Object, Text, Text, IntWritable>{
+	 public static class cityMapper extends Mapper<Object, Text, Text, IntWritable>{
 		public void map (Object key, Text value, Context context) throws IOException, InterruptedException {
 			// current line
 			String[] line = value.toString().split("\n");
@@ -33,16 +34,17 @@ public class wordcount {
 			for (String x: line) {
 				String [] temp = x.split("\t");
 				String word = temp [1];
-				/*for (int i = 2; i < temp.length; i++) {
-					word.concat(temp[i]);
-				}*/
+			   //for (int i = 2; i < temp.length; i++) {
+				//	word.concat(temp[i]);
+				//}
 				wordOut.set(word);
 				context.write(wordOut, one);
 			}
 		}
 	}
 	
-	public static class hashReducer extends Reducer <Text, IntWritable,  IntWritable, Text>{
+	
+	public static class hashReducer extends Reducer <Text, IntWritable, Text,  IntWritable>{
 		public void reduce(Text term, Iterable<IntWritable> value, Context context) throws IOException, InterruptedException  {
 			//top 100
 				int count = 0;
@@ -54,7 +56,7 @@ public class wordcount {
 				
 				// write it to a file
 				IntWritable output = new  IntWritable (count);
-				context.write(output, term);
+				context.write(term, output);
 			}
 	}
 	
@@ -64,12 +66,12 @@ public class wordcount {
 		String[] argurments = new GenericOptionsParser (conf,args).getRemainingArgs();
 		
 		if (argurments.length !=2 ) {
-			System.err.println("Not enough arguements <input file> <output file>");
+			System.err.println("Not enough arguements <users file> <output file>");
 			System.exit(2);
 		}
 		
 		// set up tasks
-		Job job = Job.getInstance(conf, "Day Count");
+		Job job = Job.getInstance(conf, "City Count");
 		job.setJarByClass(wordcount.class);
 		//gets and reduces all days
 		job.setMapperClass(cityMapper.class);
@@ -80,11 +82,13 @@ public class wordcount {
 		job.setMapOutputKeyClass(Text.class);
 	    job.setMapOutputValueClass(IntWritable.class);    
 	    
-		job.setOutputKeyClass(IntWritable.class);
-		job.setOutputValueClass(Text.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
 		
 		// set up input and output files
 		FileInputFormat.addInputPath(job, new Path(argurments[0]));
+		//MultipleInputs.addInputPath(job, new Path(argurments[0]), TextInputFormat.class, cityMapper.class);
+		//MultipleInputs.addInputPath(job, new Path(argurments[1]), TextInputFormat.class, IDMapper.class);
 		FileOutputFormat.setOutputPath(job, new Path(argurments[1]));
 		
 		// exit upon completion
@@ -133,7 +137,7 @@ public class wordcount {
 		}
 	}
 	
-	public static class hashReducer extends Reducer <Text, IntWritable,  IntWritable, Text>{
+	public static class hashReducer extends Reducer <Text, IntWritable, Text, IntWritable>{
 		public void reduce(Text term, Iterable<IntWritable> value, Context context) throws IOException, InterruptedException  {
 			//top 100
 				int count = 0;
@@ -145,7 +149,7 @@ public class wordcount {
 				
 				// write it to a file
 				IntWritable output = new  IntWritable (count);
-				context.write(output, term);
+				context.write (term, output);
 			}
 	}
 	
@@ -155,7 +159,7 @@ public class wordcount {
 		String[] argurments = new GenericOptionsParser (conf,args).getRemainingArgs();
 		
 		if (argurments.length !=2 ) {
-			System.err.println("Not enough arguements <input file> <output file>");
+			System.err.println("Not enough arguements <tweets> <output file>");
 			System.exit(2);
 		}
 		
@@ -171,8 +175,8 @@ public class wordcount {
 		job.setMapOutputKeyClass(Text.class);
 	    job.setMapOutputValueClass(IntWritable.class);    
 	    
-		job.setOutputKeyClass(IntWritable.class);
-		job.setOutputValueClass(Text.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
 		
 		// set up input and output files
 		FileInputFormat.addInputPath(job, new Path(argurments[0]));
@@ -192,7 +196,7 @@ public class wordcount {
 	/// 		Day Mapper		///
 	//////////////////////////////
 	
-	/*public static class dayMapper extends Mapper<Object, Text, Text, IntWritable>{
+/*	public static class dayMapper extends Mapper<Object, Text, Text, IntWritable>{
 		public void map (Object key, Text value, Context context) throws IOException, InterruptedException {
 			// current line
 			String[] line = value.toString().split("\n");
@@ -217,7 +221,7 @@ public class wordcount {
 		}
 	}
 	
-	public static class hashReducer extends Reducer <Text, IntWritable,  IntWritable, Text>{
+	public static class hashReducer extends Reducer <Text, IntWritable, Text, IntWritable >{
 		public void reduce(Text term, Iterable<IntWritable> value, Context context) throws IOException, InterruptedException  {
 			//top 100
 				int count = 0;
@@ -229,8 +233,12 @@ public class wordcount {
 				
 				// write it to a file
 				IntWritable output = new  IntWritable (count);
-				context.write(output, term);
+				context.write(term, output);
+
 			}
+		
+
+		
 	}
 	
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
@@ -255,8 +263,8 @@ public class wordcount {
 		job.setMapOutputKeyClass(Text.class);
 	    job.setMapOutputValueClass(IntWritable.class);    
 	    
-		job.setOutputKeyClass(IntWritable.class);
-		job.setOutputValueClass(Text.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
 		
 		// set up input and output files
 		FileInputFormat.addInputPath(job, new Path(argurments[0]));
@@ -352,6 +360,7 @@ public class wordcount {
 	
 	// basic mapper function
 	/*public static class tweetMapper extends Mapper<Object, Text, Text, IntWritable>{
+		@Override
 		public void map (Object key, Text value, Context context) throws IOException, InterruptedException {
 			// current word
 			StringTokenizer st = new StringTokenizer(value.toString());
@@ -376,7 +385,8 @@ public class wordcount {
 	}
 	
 	// basic reducer function
-	public static class hashReducer extends Reducer <Text, IntWritable,  IntWritable, Text>{
+	public static class hashReducer extends Reducer <Text, IntWritable,  Text,IntWritable>{
+		@Override
 		public void reduce(Text term, Iterable<IntWritable> value, Context context) throws IOException, InterruptedException  {
 			//top 100
 				int count = 0;
@@ -388,10 +398,10 @@ public class wordcount {
 				
 				// write it to a file
 				IntWritable output = new  IntWritable (count);
-				context.write(output, term);
-			}
+				context.write(term, output);
+			}	
 	}
-	
+	  
 	
 	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
 		// get arguements
@@ -399,7 +409,7 @@ public class wordcount {
 		String[] argurments = new GenericOptionsParser (conf,args).getRemainingArgs();
 		
 		if (argurments.length !=2 ) {
-			System.err.println("Not enough arguements <input file> <output file>");
+			System.err.println("Not enough arguements <tweets> <output file>");
 			System.exit(2);
 		}
 		
@@ -417,8 +427,8 @@ public class wordcount {
 	    job.setMapOutputValueClass(IntWritable.class);
 	    
 	    
-		job.setOutputKeyClass(IntWritable.class);
-		job.setOutputValueClass(Text.class);
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(IntWritable.class);
 		
 		// set up input and output files
 		FileInputFormat.addInputPath(job, new Path(argurments[0]));
